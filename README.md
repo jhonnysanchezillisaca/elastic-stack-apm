@@ -12,9 +12,27 @@ elasticsearch apm-server kibana
 # Quick Run
 
 ```sh
-wget https://raw.githubusercontent.com/yidinghan/eak/master/docker-compose.yml
 docker-compose up -d
 ```
+
+Search Guard must be initialized after Elasticsearch is started:
+
+```console
+$ docker-compose exec -T elasticsearch bin/init_sg.sh
+```
+
+
+_This executes sgadmin and loads the configuration from `elasticsearch/config/sg/sg*.yml`_
+
+Give Kibana a few seconds to initialize, then access the Kibana web UI by hitting
+[http://localhost:5601](http://localhost:5601) with a web browser and use the aforementioned credentials to login.
+
+By default, the stack exposes the following ports:
+* 5000: Logstash TCP input.
+* 9200: Elasticsearch HTTP
+* 9300: Elasticsearch TCP transport
+* 5601: Kibana
+
 
 Go to `localhost:5601`, or what your machine IP
 
