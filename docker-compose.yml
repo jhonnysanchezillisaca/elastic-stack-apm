@@ -7,58 +7,39 @@ services:
       - eshost=elasticsearch
       - esport=92003
       - esmaxdays=30
-
   elasticsearch:
-    build:
-      context: elasticsearch/
-      args:
-        ELK_VERSION: $ELK_VERSION
-        SG_VERSION: $SG_VERSION
+    image: elasticsearch
+    build: ./dockerfiles/elasticsearch
+    environment:
+      - xpack.security.enabled=false
+      - reindex.remote.whitelist=192.168.69.30:9200
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
     ports:
       - 9200:9200
-      - 9300:9300
     volumes:
       - ./elasticsearch/data:/usr/share/elasticsearch/data/
-      - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
-
   kibana:
-    build:
-      context: kibana/
-      args:
-        ELK_VERSION: $ELK_VERSION
-        SG_VERSION_KIBANA: $SG_VERSION_KIBANA
+    image: docker.elastic.co/kibana/kibana:6.5.1
     ports:
       - 5601:5601
-    environment:
-      NODE_OPTIONS: "--max-old-space-size=8192"
     volumes:
       - ./kibana/data:/usr/share/kibana/data/
-      - ./kibana/config/:/usr/share/kibana/config:ro
     depends_on:
       - elasticsearch
-
   logstash:
-    build:
-      context: logstash/
-      args:
-        ELK_VERSION: $ELK_VERSION
-    volumes:
-      - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml:ro
-      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+    image: docker.elastic.co/logstash/logstash:6.5.1
     ports:
       - 5010:5010
       - 5044:5044
       - 8888:8888
-      - 9600:9600
-    depends_on:
-      - elasticsearch
-
+    environment:
+      - ES_HOSTS='http://elasticsearch:9200'
   apm-server:
     image: docker.elastic.co/apm/apm-server:6.5.1
     ports:
       - 8200:8200
     environment:
-      - output.elasticsearch.hosts=['https://elasticsearch:9200']
+      - output.elasticsearch.hosts=['http://elasticsearch:9200']
       - xpack.monitoring.enabled=true
       - apm-server.host="0.0.0.0:8200"
       - apm-server.secret_token="xxVpmQB2HMzCL9PgBHVrnxjNXXw5J7bd79DFm6sjBJR5HPXDhcF8MSb3vv4bpg44"
