@@ -1,29 +1,17 @@
-# EAK
+# Elastic stack with APM
 
-- [EAK](#eak)
 - [Quick Run](#quick-run)
+- [Maintenance](#maintenance)
 - [Remarks](#remarks)
 - [Resources](#resources)
-- [Waterline](#waterline)
-  - [Example](#example)
 
-elasticsearch apm-server kibana
+elasticsearch apm-server logstash kibana
 
 # Quick Run
 
 ```sh
 docker-compose up -d
 ```
-
-Search Guard must be initialized after Elasticsearch is started:
-
-```console
-$ docker-compose exec -T elasticsearch bin/init_sg.sh
-```
-
-
-_This executes sgadmin and loads the configuration from `elasticsearch/config/sg/sg*.yml`_
-
 Give Kibana a few seconds to initialize, then access the Kibana web UI by hitting
 [http://localhost:5601](http://localhost:5601) with a web browser and use the aforementioned credentials to login.
 
@@ -38,66 +26,16 @@ Go to `localhost:5601`, or what your machine IP
 
 Wait for kibana to be available, then you are ready to try apm
 
+## Maintenance 
+To delete older indexes using curator set up a cron or Jenkins job that runs `docker-compose run --rm curator --config config.yml action-file.yml`
+
+
 # Remarks
 
 - Since v6.4, apm dashboard setup move to Kibana UI.
 
   ![](https://github.com/yidinghan/eak/raw/master/images/apm-setup-instructions.jpg)
   ![](https://github.com/yidinghan/eak/raw/master/images/load-kibana-objects.jpg)
-
-- with [apm-agent-nodejs:v1.1.0](https://github.com/elastic/apm-agent-nodejs/tree/v1.1.0)
-
-  - start method
-
-  ```js
-  // change from
-  require('elastic-apm-node/start');
-  // to
-  require('elastic-apm-node').start();
-  ```
-
-  - `elastic-apm-node.js` config change
-
-  ```js
-  // change from
-  appName: 'apm-reseach',
-  // to
-  serviceName: 'apm-reseach',
-  ```
-
-- with [docker.elastic.co/kibana/kibana:6.2.2](https://github.com/elastic/kibana/tree/6.2.2)
-
-  - New tab `APM` is ready to go
-
-  ![](http://om4h4iqhe.bkt.clouddn.com/kibana-apm-services.jpg)
-  ![](http://om4h4iqhe.bkt.clouddn.com/kibana-apm-service.jpg)
-  ![](http://om4h4iqhe.bkt.clouddn.com/kibana-apm-request.jpg)
-  ![](http://om4h4iqhe.bkt.clouddn.com/kibana-apm-pg-span.jpg)
-
-- with [playdingnow/elastic-apm-server:1.5.0](https://github.com/yidinghan/elastic-apm-server/tree/1.5.0)
-  - drop `Waterline` from dashboard temporary
-- with [docker.elastic.co/kibana/kibana:6.1.1](https://github.com/elastic/kibana/tree/6.1.1)
-
-  - A new tab named `APM` appears in the left sidebar
-
-  ![](http://om4h4iqhe.bkt.clouddn.com/kibana-tab-apm.jpg)
-
-- with [playdingnow/elastic-apm-server:1.4.3](https://github.com/yidinghan/elastic-apm-server/tree/1.4.3)
-
-  - The default `apm-dashboards.json` have been changed to customize [data](https://github.com/yidinghan/elastic-apm-server/blob/master/apm-dashboards.json)
-  - One more `visualization` chart name is [Waterline](#waterline)
-
-  ![](http://om4h4iqhe.bkt.clouddn.com/apm-waterline.jpg)
-
-- with [playdingnow/elastic-apm-server:v1.2](https://github.com/yidinghan/elastic-apm-server/tree/v1.2)
-  - The default secret_token have been changed from `''` to `xxVpmQB2HMzCL9PgBHVrnxjNXXw5J7bd79DFm6sjBJR5HPXDhcF8MSb3vv4bpg44`
-- with compose 2.2 feature, [healthcheck](https://docs.docker.com/compose/compose-file/compose-file-v2/#healthcheck)
-  - your may need to wait a while in the `up` stage
-  - because kibana depends on es
-  - apm-server depends on es and kibana
-- apm-server may exit before elasticsearch is ready
-  - exit status could be found by `docker-compose ps`
-  - once exit then you should restart it, like `docker-compose up -d`
 
 # Resources
 
@@ -129,38 +67,3 @@ Wait for kibana to be available, then you are ready to try apm
   - nodejs: https://www.elastic.co/guide/en/apm/agent/nodejs/current/intro.html
     - agent api: https://www.elastic.co/guide/en/apm/agent/nodejs/current/agent-api.html
     - github: https://github.com/elastic/apm-agent-nodejs
-
-# Waterline
-
-The higher the waterline, the higher the service load, formula is as follows
-
-```js
-waterline = sum([waterline_0, waterline_1, ..., waterline_n]) / count(duration)
-
-waterline_x = count(duration, [border_x_start, border_x_end]) * a_x
-```
-
-Where
-
-- duration is `transaction.duration.us`
-- border_x is interval border, like [0, 100] means from 0ms to 100ms
-- a_x is interval coefficient of border_x, like 1/2/100 or whatever you want
-
-## Example
-
-```js
-waterline = ( count(duration, [0, 200]) * 1 + count(duration, [200, *]) * 2 ) / count(duration)
-```
-
-In a point
-
-```js
-10 = count(duration, [0, 200])
-1 = count(duration, [200, *])
-```
-
-Then, in 3 decimal places precision
-
-```js
-waterline = ( 10 * 1 + 1 * 2 ) / 11 = 1.091
-```
